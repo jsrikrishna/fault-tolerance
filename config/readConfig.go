@@ -10,7 +10,11 @@ import (
 func ReadConfig() (Configuration, error) {
 	pwd, err := os.Getwd()
 	fmt.Printf("Current Path is %s\n", pwd)
-	file, err := ioutil.ReadFile(pwd + "/src/fault-tolerance/config/config.json")
+	// Sri Path
+	//file, err := ioutil.ReadFile(pwd + "/src/fault-tolerance/config/config.json")
+
+	// Thej Path
+	file, err := ioutil.ReadFile("../config/config.json")
 	if err != nil {
 		fmt.Printf("File error: %v\n", err)
 		return Configuration{}, err
