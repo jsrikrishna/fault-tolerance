@@ -1,0 +1,19 @@
+{
+  "name": "load-balance",
+  "protocol": "tcp",
+  "bindto": "localhost:8090",
+  "servers": [
+    {
+      "address": "localhost:8081",
+      "name" : "s1"
+    },
+    {
+      "address": "localhost:8082",
+      "name" : "s2"
+    },
+    {
+      "address": "localhost:8083",
+      "name" : "s3"
+    }
+  ]
+}
