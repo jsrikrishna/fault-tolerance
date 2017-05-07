@@ -96,6 +96,7 @@ func proxy(to net.Conn, from net.Conn, timeout time.Duration) <- chan ReadWriteC
 	go func() {
 		err := Copy(to, from, stats)
 		e, ok := err.(*net.OpError)
+		//refer to proxy.go, 84
 		if err != nil && (!ok || e.Err.Error() != "use of closed network connection") {
 			fmt.Printf("Error occured i dont know %v\n", err)
 		}

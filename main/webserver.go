@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"fault-tolerance/config"
+	"fault-tolerance/scheduler"
 	//"github.com/parnurzeal/gorequest"
 )
 
@@ -17,9 +18,10 @@ func main() {
 		fmt.Printf("%v\n", err)
 	}
 	done := make(chan string)
-	tcpServer := New(configuration, done)
+	loadScheduler := scheduler.New(configuration)
+	tcpServer := New(configuration, loadScheduler, done)
 	tcpServer.Start()
-	fmt.Printf("%v\n", configuration)
+	fmt.Printf("Configuration - %v\n", configuration)
 	<- done
 
 }

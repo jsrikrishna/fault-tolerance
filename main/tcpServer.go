@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"fault-tolerance/config"
 	"time"
+	"fault-tolerance/scheduler"
 )
 
 type TcpServer struct {
@@ -14,15 +15,17 @@ type TcpServer struct {
 	connect    chan (*TcpContext)
 	disconnect chan (net.Conn)
 	done       chan string
+	scheduler *scheduler.Scheduler
 }
 
-func New(configuration config.Configuration, done chan string) *TcpServer {
+func New(configuration config.Configuration, scheduler *scheduler.Scheduler, done chan string) *TcpServer {
 	tcpServer := &TcpServer{
 		name: configuration.Name,
 		bindTo:configuration.BindTo,
 		done: done,
 		connect: make(chan *TcpContext),
 		disconnect:make(chan net.Conn),
+		scheduler:scheduler,
 	}
 	return tcpServer
 }
@@ -31,10 +34,9 @@ func (server *TcpServer) Start() (err error) {
 		for {
 			select {
 			case client := <-server.disconnect:
-				fmt.Printf("%v\n", client)
+				fmt.Println("Coming here now")
 				server.HandleClientDisConnect(client)
 			case context := <-server.connect:
-				fmt.Printf("hello - %v\n", context)
 				server.HandleClientConnect(context)
 
 			}
@@ -81,37 +83,44 @@ func (server *TcpServer) HandleClientConnect(ctx *TcpContext){
 	}()
 }
 
-func (server *TcpServer) handle(ctx *TcpContext){
+func (server *TcpServer) handle(ctx *TcpContext) (err error){
 	clientConn := ctx.Conn
 	var backendConn net.Conn
-	var err error
 	timeout, _ := time.ParseDuration("2s")
 	backendIdleTimeout, _ := time.ParseDuration("10s")
-	clinetIdleTimeout, _ := time.ParseDuration("10s")
-	backendConn, err = net.DialTimeout("tcp", "127.0.0.1:8081", timeout)
+	clientIdleTimeout, _ := time.ParseDuration("10s")
+	backendAddress, err := server.scheduler.GetBackend()
+	if err != nil {
+		fmt.Printf("No backends present to route the request %v\n", err)
+		return err
+	}
+	backendConn, err = net.DialTimeout("tcp", backendAddress, timeout)
 	if err != nil {
 		fmt.Printf("%v\n", err)
+		return err
 	}
 	fmt.Println("Start connection")
 	cs := proxy(clientConn, backendConn, backendIdleTimeout)
-	bs := proxy(backendConn, clientConn, clinetIdleTimeout)
+	bs := proxy(backendConn, clientConn, clientIdleTimeout)
 
 	isTx, isRx := true, true
-	i := 0
+	//i := 0
 	for isTx || isRx {
 		select {
 		case _, ok := <-cs:
 			isRx = ok
-		case _, ok := <- bs:
-			isTx = ok
+		case _, ok2 := <- bs:
+			isTx = ok2
 		}
-		i += 1
-		fmt.Printf("Hello in for loop %i", i)
+		//i += 1
+		//fmt.Printf("Hello brother, i am executing in for loop, take me out when connection ends %d\n", i)
 
 	}
 	fmt.Println("End connection")
+	return nil
 }
 
 func (server *TcpServer) HandleClientDisConnect(client net.Conn){
+	fmt.Println("Hello not coming here")
 	client.Close()
 }
