@@ -1,10 +1,11 @@
 package scheduler
 
-import "fault-tolerance/config"
-import "errors"
 import (
 	"math/rand"
 	"fmt"
+	"fault-tolerance/config"
+	"errors"
+	"fault-tolerance/ping"
 )
 
 type Scheduler struct {
@@ -17,12 +18,15 @@ func New(config config.Configuration) *Scheduler {
 }
 
 func (scheduler *Scheduler) GetBackend() (string, error){
-	numberOfServers := len(scheduler.Servers)
+	var available []string
+	available, _ = ping.Healthcheck(scheduler)
+
+	numberOfServers := len(available)
 	if numberOfServers == 0 {
 		return "", errors.New("All servers are down, no servers to connect")
 	}
 	serverNumber := rand.Intn(numberOfServers)
 	fmt.Printf("Server Number is %d\n", serverNumber)
-	return scheduler.Servers[serverNumber].Address, nil
+	return available[serverNumber], nil
 }
 

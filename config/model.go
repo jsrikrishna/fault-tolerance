@@ -13,4 +13,5 @@ type Configuration struct {
 type Server struct {
 	Address string `json:"address"`
 	Name string `json:"name"`
+	Status bool
 }
