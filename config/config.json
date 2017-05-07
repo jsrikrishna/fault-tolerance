@@ -2,6 +2,9 @@
   "name": "load-balance",
   "protocol": "tcp",
   "bindto": "localhost:8090",
+  "clientIdleTimeout" : "10s",
+  "backendIdleTimeout": "10s",
+  "backendConnectionTimeout": "2s",
   "servers": [
     {
       "address": "localhost:8081",
