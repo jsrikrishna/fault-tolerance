@@ -4,7 +4,7 @@ import (
 	"net"
 	"fmt"
 	"fault-tolerance/config"
-	"fault-tolerance/scheduler"
+	"fault-tolerance/ping"
 )
 
 type TcpServer struct {
@@ -17,10 +17,10 @@ type TcpServer struct {
 	connect                  chan (*TcpContext)
 	disconnect               chan (net.Conn)
 	done                     chan string
-	scheduler                *scheduler.Scheduler
+	scheduler                *ping.Scheduler
 }
 
-func New(configuration config.Configuration, scheduler *scheduler.Scheduler, done chan string) *TcpServer {
+func New(configuration config.Configuration, scheduler *ping.Scheduler, done chan string) *TcpServer {
 	tcpServer := &TcpServer{
 		name: configuration.Name,
 		bindTo:configuration.BindTo,
