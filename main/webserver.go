@@ -5,6 +5,7 @@ import (
 	"fault-tolerance/config"
 	"fault-tolerance/scheduler"
 	//"github.com/parnurzeal/gorequest"
+	"fault-tolerance/ping"
 )
 
 func main() {
@@ -20,6 +21,10 @@ func main() {
 	done := make(chan string)
 	loadScheduler := scheduler.New(configuration)
 	tcpServer := New(configuration, loadScheduler, done)
+
+	// Run a goroutine for healthcheck
+	go ping.HealthCheckWrapper(tcpServer.scheduler)
+
 	tcpServer.Start()
 	fmt.Printf("Configuration - %v\n", configuration)
 	<- done

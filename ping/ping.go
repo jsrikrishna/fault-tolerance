@@ -12,12 +12,14 @@ import (
 
 type Scheduler struct {
 	Servers []config.Server
+	PingInterval int
+	HealthcheckInterval int
+	AvailableServers []string
 }
 
 func (scheduler *Scheduler) GetBackend() (string, error){
 	var available []string
-	available, _ = Healthcheck(scheduler)
-
+	available = scheduler.AvailableServers
 	numberOfServers := len(available)
 	if numberOfServers == 0 {
 		return "", errors.New("All servers are down, no servers to connect")
@@ -27,15 +29,22 @@ func (scheduler *Scheduler) GetBackend() (string, error){
 	return available[serverNumber], nil
 }
 
+func HealthCheckWrapper(scheduler *Scheduler) {
+	for{
+		Healthcheck(scheduler)
+		time.Sleep(time.Duration(scheduler.HealthcheckInterval) *time.Millisecond)
+	}
+}
+
 func Healthcheck(scheduler *Scheduler) ([]string, []string) {
 
-	flagTimeout := 10
 	var connected []string
 	var disconnected []string
 	servers := scheduler.Servers
+	pingInterval := scheduler.PingInterval
 	for _, value := range servers {
 
-		conn, err := net.DialTimeout("tcp", value.Address, time.Duration(flagTimeout) * time.Second)
+		conn, err := net.DialTimeout("tcp", value.Address, time.Duration(pingInterval) * time.Second)
 		if err != nil {
 			fmt.Printf(value.Address + " Disconnected\n")
 			value.Status = false
@@ -47,5 +56,6 @@ func Healthcheck(scheduler *Scheduler) ([]string, []string) {
 		defer conn.Close()
 		connected = append(connected, value.Address)
 	}
+	scheduler.AvailableServers = connected
 	return connected, disconnected
 }
