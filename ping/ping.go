@@ -12,6 +12,7 @@ import (
 
 type Scheduler struct {
 	Servers []config.Server
+	PingInterval int
 }
 
 func (scheduler *Scheduler) GetBackend() (string, error){
@@ -29,13 +30,13 @@ func (scheduler *Scheduler) GetBackend() (string, error){
 
 func Healthcheck(scheduler *Scheduler) ([]string, []string) {
 
-	flagTimeout := 10
 	var connected []string
 	var disconnected []string
 	servers := scheduler.Servers
+	pingInterval := scheduler.PingInterval
 	for _, value := range servers {
 
-		conn, err := net.DialTimeout("tcp", value.Address, time.Duration(flagTimeout) * time.Second)
+		conn, err := net.DialTimeout("tcp", value.Address, time.Duration(pingInterval) * time.Second)
 		if err != nil {
 			fmt.Printf(value.Address + " Disconnected\n")
 			value.Status = false

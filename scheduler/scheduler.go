@@ -6,7 +6,7 @@ import (
 )
 
 func New(config config.Configuration) *ping.Scheduler {
-	scheduler := ping.Scheduler{config.Servers}
+	scheduler := ping.Scheduler{config.Servers, config.PingInterval}
 	return &scheduler
 }
 
