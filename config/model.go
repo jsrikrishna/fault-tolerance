@@ -8,6 +8,7 @@ type Configuration struct {
 	BackendIdleTimeout string `json:"backendIdleTimeout"`
 	BackendConnectionTimeout string `json: "backendConnectionTimeout"`
 	PingInterval int `json:"pingInterval"`
+	HealthcheckInterval int `json:"healthcheckInterval"`
 	Servers []Server `json:"servers"`
 }
 

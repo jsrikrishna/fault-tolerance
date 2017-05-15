@@ -13,12 +13,13 @@ import (
 type Scheduler struct {
 	Servers []config.Server
 	PingInterval int
+	HealthcheckInterval int
+	AvailableServers []string
 }
 
 func (scheduler *Scheduler) GetBackend() (string, error){
 	var available []string
-	available, _ = Healthcheck(scheduler)
-
+	available = scheduler.AvailableServers
 	numberOfServers := len(available)
 	if numberOfServers == 0 {
 		return "", errors.New("All servers are down, no servers to connect")
@@ -26,6 +27,13 @@ func (scheduler *Scheduler) GetBackend() (string, error){
 	serverNumber := rand.Intn(numberOfServers)
 	fmt.Printf("Server Number is %d\n", serverNumber)
 	return available[serverNumber], nil
+}
+
+func HealthCheckWrapper(scheduler *Scheduler) {
+	for{
+		Healthcheck(scheduler)
+		time.Sleep(time.Duration(scheduler.HealthcheckInterval) *time.Millisecond)
+	}
 }
 
 func Healthcheck(scheduler *Scheduler) ([]string, []string) {
@@ -48,5 +56,6 @@ func Healthcheck(scheduler *Scheduler) ([]string, []string) {
 		defer conn.Close()
 		connected = append(connected, value.Address)
 	}
+	scheduler.AvailableServers = connected
 	return connected, disconnected
 }
