@@ -18,6 +18,10 @@ type Scheduler struct {
 	AvailableServers []string
 	UnavailableServers []string
 	DeadServers []string
+	Algorithm string
+	PreviousServer int
+	CurrentServerCounter int
+	AvailableServerPtrs []config.Server
 }
 
 func (scheduler *Scheduler) GetBackend() (string, error){
@@ -27,9 +31,41 @@ func (scheduler *Scheduler) GetBackend() (string, error){
 	if numberOfServers == 0 {
 		return "", errors.New("All servers are down, no servers to connect")
 	}
-	serverNumber := rand.Intn(numberOfServers)
-	fmt.Printf("Server Number is %d\n", serverNumber)
-	return available[serverNumber], nil
+
+	switch scheduler.Algorithm {
+	case "random":
+		fmt.Printf("Using Random Algorithm\n")
+		serverNumber := rand.Intn(numberOfServers)
+		fmt.Printf("Server Number is %d\n", serverNumber)
+		return available[serverNumber], nil
+
+	case "roundrobin":
+		fmt.Printf("Using Round Robin Algorithm\n")
+		serverNumber := ((scheduler.PreviousServer+1) % numberOfServers)
+		scheduler.PreviousServer = serverNumber
+		fmt.Printf("Server Number is %d\n", serverNumber)
+		return available[serverNumber], nil
+
+	case "weightedroundrobin":
+		fmt.Printf("Using Weighted Round Robin Algorithm\n")
+		temp := scheduler.PreviousServer
+		if (scheduler.CurrentServerCounter > scheduler.AvailableServerPtrs[scheduler.PreviousServer].Weight){
+			temp = (scheduler.PreviousServer + 1) % numberOfServers
+			scheduler.PreviousServer = (scheduler.PreviousServer + 1) % numberOfServers
+			scheduler.CurrentServerCounter = 0
+
+		}
+		scheduler.CurrentServerCounter++
+		return available[temp], nil
+
+
+	default:
+		fmt.Printf("Defaulting to Random Algorithm\n")
+		serverNumber := rand.Intn(numberOfServers)
+		fmt.Printf("Server Number is %d\n", serverNumber)
+		return available[serverNumber], nil
+	}
+
 }
 
 func HealthCheckWrapper(scheduler *Scheduler) {
@@ -44,6 +80,7 @@ func Healthcheck(scheduler *Scheduler) () {
 	var connected []string
 	var disconnected []string
 	var dead []string
+	var available_servers []config.Server
 	servers := scheduler.Servers
 	pingInterval := scheduler.PingInterval
 	for _, value := range servers {
@@ -64,10 +101,12 @@ func Healthcheck(scheduler *Scheduler) () {
 		value.Status = true
 		value.CurrentCounter = 0
 		value.Dead = false
+		available_servers = append(available_servers,value)
 		defer conn.Close()
 		connected = append(connected, value.Address)
 	}
 	scheduler.AvailableServers = connected
 	scheduler.UnavailableServers = disconnected
 	scheduler.DeadServers = dead
+	scheduler.AvailableServerPtrs = available_servers
 }

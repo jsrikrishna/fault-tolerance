@@ -8,18 +8,22 @@
   "pingInterval": 10,
   "healthcheckInterval": 5000,
   "status_counter": 5,
+  "algorithm" : "random",
   "servers": [
     {
       "address": "localhost:8081",
-      "name" : "s1"
+      "name" : "s1",
+      "weight": 1
     },
     {
       "address": "localhost:8082",
-      "name" : "s2"
+      "name" : "s2",
+      "weight" : 1
     },
     {
       "address": "localhost:8083",
-      "name" : "s3"
+      "name" : "s3",
+      "weight" : 1
     }
   ]
 }

@@ -11,6 +11,7 @@ type Configuration struct {
 	HealthcheckInterval int `json:"healthcheckInterval"`
 	StatusCounter int `json:"status_counter"`
 	Servers []Server `json:"servers"`
+	Algorithm string `json:"algorithm"`
 }
 
 type Server struct {
@@ -19,4 +20,5 @@ type Server struct {
 	Status bool
 	CurrentCounter int
 	Dead bool
+	Weight int `json:"weight"`
 }
