@@ -5,8 +5,9 @@
   "clientIdleTimeout" : "10s",
   "backendIdleTimeout": "10s",
   "backendConnectionTimeout": "2s",
-  "pingInterval":10,
-  "healthcheckInterval":5000,
+  "pingInterval": 10,
+  "healthcheckInterval": 5000,
+  "status_counter": 5,
   "servers": [
     {
       "address": "localhost:8081",
