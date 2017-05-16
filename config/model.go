@@ -9,6 +9,7 @@ type Configuration struct {
 	BackendConnectionTimeout string `json: "backendConnectionTimeout"`
 	PingInterval int `json:"pingInterval"`
 	HealthcheckInterval int `json:"healthcheckInterval"`
+	StatusCounter int `json:"status_counter"`
 	Servers []Server `json:"servers"`
 }
 
@@ -16,4 +17,6 @@ type Server struct {
 	Address string `json:"address"`
 	Name string `json:"name"`
 	Status bool
+	CurrentCounter int
+	Dead bool
 }
