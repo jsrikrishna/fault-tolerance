@@ -10,13 +10,14 @@ import (
 	"fault-tolerance/ping"
 )
 
-func NewMultipleHostReverseProxy(scheduler *ping.Scheduler) *httputil.ReverseProxy {
+func NewMultipleHostReverseProxy(scheduler *ping.Scheduler, tracker *RequestTracker) *httputil.ReverseProxy {
 	director := func(req *http.Request) {
 		backEnd, err := scheduler.GetBackend()
 		if err != nil {
-			fmt.Printf("%v\n", err)
+			fmt.Printf("Could not a get a backend %v\n", err)
 		}
 		fmt.Println("Sending the request to ", backEnd)
+		tracker.addRequest(req.URL, backEnd)
 		req.URL.Scheme = "http"
 		req.URL.Host = backEnd
 	}
@@ -51,11 +52,14 @@ func main() {
 	configuration, err := config.ReadConfig()
 	if err != nil {
 		fmt.Printf("%v\n", err)
+	} else {
+		fmt.Printf("Configuration - %v\n", configuration)
+		loadScheduler := scheduler.New(configuration)
+		tracker := NewRequestTracker()
+		// Run a goroutine for healthcheck
+		go ping.HealthCheckWrapper(loadScheduler)
+		proxy := NewMultipleHostReverseProxy(loadScheduler, tracker)
+		log.Fatal(http.ListenAndServe(configuration.BindTo, proxy))
 	}
-	fmt.Printf("Configuration - %v\n", configuration)
-	loadScheduler := scheduler.New(configuration)
-	// Run a goroutine for healthcheck
-	go ping.HealthCheckWrapper(loadScheduler)
-	proxy := NewMultipleHostReverseProxy(loadScheduler)
-	log.Fatal(http.ListenAndServe(configuration.BindTo, proxy))
+
 }
