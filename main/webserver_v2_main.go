@@ -4,11 +4,8 @@ import (
 	"fmt"
 	"fault-tolerance/config"
 	"net/http"
-	"net/url"
 	"net/http/httputil"
 	"log"
-	"net"
-	"time"
 	"fault-tolerance/scheduler"
 	"fault-tolerance/ping"
 )
@@ -25,24 +22,27 @@ func NewMultipleHostReverseProxy(scheduler *ping.Scheduler) *httputil.ReversePro
 	}
 	return &httputil.ReverseProxy{
 		Director:director,
-		Transport: &http.Transport{
-			Proxy : func(req *http.Request) (*url.URL, error) {
-				fmt.Println("Calling a backend")
-				return http.ProxyFromEnvironment(req)
-			},
-			Dial : func(network, addr string) (net.Conn, error) {
-				fmt.Println("Calling Dial")
-				conn, err := (&net.Dialer{
-					Timeout: 30 * time.Second,
-					KeepAlive: 30 * time.Second,
-				}).Dial(network, addr)
-				if err != nil {
-					fmt.Println("Error during Dial: ", err.Error())
-				}
-				return conn, err
-			},
-			TLSHandshakeTimeout: 10 * time.Second,
-		},
+		// Commenting for now, as GetBackend() method will always return an available backend
+		// but it is possible that, the backEnd returned by GetBackend(), can be down, from the last ping
+		// and requests came in between two conseccutvie pings
+		//Transport: &http.Transport{
+		//	Proxy : func(req *http.Request) (*url.URL, error) {
+		//		fmt.Println("Calling a backend")
+		//		return http.ProxyFromEnvironment(req)
+		//	},
+		//	Dial : func(network, addr string) (net.Conn, error) {
+		//		fmt.Println("Calling Dial")
+		//		conn, err := (&net.Dialer{
+		//			Timeout: 30 * time.Second,
+		//			KeepAlive: 30 * time.Second,
+		//		}).Dial(network, addr)
+		//		if err != nil {
+		//			fmt.Println("Error during Dial: ", err.Error())
+		//		}
+		//		return conn, err
+		//	},
+		//	TLSHandshakeTimeout: 10 * time.Second,
+		//},
 	}
 
 }
@@ -52,7 +52,10 @@ func main() {
 	if err != nil {
 		fmt.Printf("%v\n", err)
 	}
+	fmt.Printf("Configuration - %v\n", configuration)
 	loadScheduler := scheduler.New(configuration)
+	// Run a goroutine for healthcheck
+	go ping.HealthCheckWrapper(loadScheduler)
 	proxy := NewMultipleHostReverseProxy(loadScheduler)
 	log.Fatal(http.ListenAndServe(configuration.BindTo, proxy))
 }
