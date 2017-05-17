@@ -3,6 +3,7 @@ package main
 import (
 	"net/url"
 	"fmt"
+	"strings"
 )
 
 type Request struct {
@@ -13,15 +14,35 @@ type Request struct {
 }
 
 type RequestTracker struct {
-	requestTracker map[string]Request
+	requestTracker map[string][]Request
 }
 
 func NewRequestTracker() *RequestTracker {
 	return &RequestTracker{
-		requestTracker: make(map[string]Request),
+		requestTracker: make(map[string][]Request),
 	}
 }
 
-func (*RequestTracker) addRequest(url *url.URL, backend string) {
-	fmt.Println("Request went to", backend, " with path ", url.Path)
+func (tracker *RequestTracker) addRequest(url *url.URL, backend string) {
+	if (strings.TrimSpace(url.Path) == "/resources") {
+		value, ok := tracker.requestTracker[backend]
+		request := Request{
+			Path: url.Path,
+			StartTime: "StartTime", // Keeping strings just for now, until /requests format is known
+			EndTime: "EndTime", // Keeping strings just for now, until /requests format is known
+			BackEndHandler: backend,
+		}
+		if ok {
+			value = append(value, request)
+			tracker.requestTracker[backend] = value
+		} else {
+			var requests []Request
+			requests = append(requests, request)
+			tracker.requestTracker[backend] = requests
+		}
+		//for key, value := range tracker.requestTracker {
+		//	fmt.Println("Key:", key, "Value:", value)
+		//}
+	}
+
 }
