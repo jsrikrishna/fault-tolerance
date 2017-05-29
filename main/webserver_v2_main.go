@@ -8,6 +8,8 @@ import (
 	"log"
 	"fault-tolerance/scheduler"
 	"fault-tolerance/ping"
+	"io/ioutil"
+	"bytes"
 )
 
 func NewMultipleHostReverseProxy(scheduler *ping.Scheduler, tracker *RequestTracker) *httputil.ReverseProxy {
@@ -17,7 +19,15 @@ func NewMultipleHostReverseProxy(scheduler *ping.Scheduler, tracker *RequestTrac
 			fmt.Printf("Could not a get a backend %v\n", err)
 		}
 		fmt.Println("Sending the request to ", backEnd)
-		tracker.addRequest(req.URL, backEnd)
+		var bodyBytes []byte
+		// Reference : https://stackoverflow.com/questions/23070876/reading-body-of-http-request-without-modifying-request-state
+		if req.Body != nil {
+			bodyBytes, _ = ioutil.ReadAll(req.Body)
+			bodyForTracking := ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
+			// Restore the io.ReadCloser to its original state
+			req.Body = ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
+			tracker.addRequest(req.URL, bodyForTracking, backEnd)
+		}
 		req.URL.Scheme = "http"
 		req.URL.Host = backEnd
 	}

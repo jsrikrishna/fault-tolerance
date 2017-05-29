@@ -1,20 +1,32 @@
 package main
 
 import (
-	"net/url"
-	"fmt"
 	"strings"
+	//"net/http"
+	"encoding/json"
+	"fmt"
+	"time"
+	"net/url"
+	"io"
 )
 
 type Request struct {
 	Path           string
-	StartTime      string
-	EndTime        string
+	StartTime      time.Time
+	EndTime        time.Time
+	//StartTime      string
+	//EndTime        string
 	BackEndHandler string
 }
 
 type RequestTracker struct {
 	requestTracker map[string][]Request
+}
+
+type RequestType struct {
+	Type      string `json:"type"`
+	StartTime string `json:"starttime"`
+	EndTime   string `json:"endtime"`
 }
 
 func NewRequestTracker() *RequestTracker {
@@ -23,13 +35,29 @@ func NewRequestTracker() *RequestTracker {
 	}
 }
 
-func (tracker *RequestTracker) addRequest(url *url.URL, backend string) {
-	if (strings.TrimSpace(url.Path) == "/resources") {
+func (tracker *RequestTracker) addRequest(reqURL *url.URL, body io.ReadCloser, backend string) {
+	if (strings.TrimSpace(reqURL.Path) == "/resources") {
+		decoder := json.NewDecoder(body)
+		var requestType RequestType
+		err := decoder.Decode(&requestType)
+		if err != nil {
+			fmt.Println("Error occurred while decoding the /resources body ", err)
+			return
+		}
+		timeLayout := "Mon, 01/02/06, 03:04PM" // Reference Time Format
+		startTime, err := time.Parse(timeLayout, requestType.StartTime)
+		endTime, err := time.Parse(timeLayout, requestType.EndTime)
+		fmt.Println(startTime)
+		fmt.Println(endTime)
+		if err != nil {
+			fmt.Println("Error occurred in formatting time, expected timeFormat is ", timeLayout)
+			return
+		}
 		value, ok := tracker.requestTracker[backend]
 		request := Request{
-			Path: url.Path,
-			StartTime: "StartTime", // Keeping strings just for now, until /requests format is known
-			EndTime: "EndTime", // Keeping strings just for now, until /requests format is known
+			Path: reqURL.Path,
+			StartTime: startTime,
+			EndTime: endTime,
 			BackEndHandler: backend,
 		}
 		if ok {
@@ -44,5 +72,4 @@ func (tracker *RequestTracker) addRequest(url *url.URL, backend string) {
 		//	fmt.Println("Key:", key, "Value:", value)
 		//}
 	}
-
 }
