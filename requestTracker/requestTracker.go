@@ -7,7 +7,10 @@ import (
 	"strings"
 	"encoding/json"
 	"fmt"
+	"github.com/parnurzeal/gorequest"
 )
+
+const timeLayout = "Mon, 01/02/06, 03:04PM" // Reference Time Format
 
 type Request struct {
 	Path           string
@@ -19,7 +22,7 @@ type Request struct {
 }
 
 type RequestTracker struct {
-	CurrentRequests map[string][]Request
+	CurrentRequests map[string][]*Request
 }
 
 type RequestType struct {
@@ -30,7 +33,7 @@ type RequestType struct {
 
 func NewRequestTracker() *RequestTracker {
 	return &RequestTracker{
-		CurrentRequests: make(map[string][]Request),
+		CurrentRequests: make(map[string][]*Request),
 	}
 }
 
@@ -43,7 +46,6 @@ func (tracker *RequestTracker) AddRequest(reqURL *url.URL, body io.ReadCloser, b
 			fmt.Println("Error occurred while decoding the /resources body ", err)
 			return
 		}
-		timeLayout := "Mon, 01/02/06, 03:04PM" // Reference Time Format
 		startTime, err := time.Parse(timeLayout, requestType.StartTime)
 		endTime, err := time.Parse(timeLayout, requestType.EndTime)
 		fmt.Println(startTime)
@@ -53,7 +55,7 @@ func (tracker *RequestTracker) AddRequest(reqURL *url.URL, body io.ReadCloser, b
 			return
 		}
 		value, ok := tracker.CurrentRequests[backend]
-		request := Request{
+		request := &Request{
 			Path: reqURL.Path,
 			StartTime: startTime,
 			EndTime: endTime,
@@ -63,7 +65,7 @@ func (tracker *RequestTracker) AddRequest(reqURL *url.URL, body io.ReadCloser, b
 			value = append(value, request)
 			tracker.CurrentRequests[backend] = value
 		} else {
-			var requests []Request
+			var requests []*Request
 			requests = append(requests, request)
 			tracker.CurrentRequests[backend] = requests
 		}
@@ -72,7 +74,33 @@ func (tracker *RequestTracker) AddRequest(reqURL *url.URL, body io.ReadCloser, b
 		//}
 	}
 }
+func currentRequestCallback(resp gorequest.Response, body string, errs []error){
+	fmt.Println("Status is done ", resp.Status)
+}
 
-func (tracker *RequestTracker) CheckForDeadServerRequests(address string) {
-	fmt.Println("Address is ", address)
+func (tracker *RequestTracker) CheckForDeadServerRequests(address string, backend string) {
+	if currentRequests, present := tracker.CurrentRequests[address]; present {
+		fmt.Printf("Server is currently handling requests %t \n", present)
+		fmt.Printf("Current Requets are %d\n", len(currentRequests))
+		currentTime := time.Now()
+		fmt.Println(currentTime.Format(timeLayout))
+		for _, currentRequest := range currentRequests {
+			if currentRequest.EndTime.After(currentTime) {
+				fmt.Println("Yes, need to process request")
+				requestBody := RequestType{
+					Type : "resources",
+					StartTime: currentTime.Format(timeLayout),
+					EndTime: currentRequest.EndTime.Format(timeLayout),
+
+				}
+				request := gorequest.New()
+				resp, body, errs := request.Post("http://" + backend + "/resources").
+					Send(requestBody).
+					End(currentRequestCallback)
+				fmt.Printf("%v, %v, %v", resp, body, errs)
+			}
+		}
+
+	}
+
 }

@@ -7,7 +7,7 @@
   "backendConnectionTimeout": "2s",
   "pingInterval": 10,
   "healthcheckInterval": 5000,
-  "status_counter": 5,
+  "status_counter": 1,
   "algorithm" : "random",
   "servers": [
     {

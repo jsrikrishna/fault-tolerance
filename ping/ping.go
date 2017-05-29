@@ -91,9 +91,15 @@ func Healthcheck(scheduler *Scheduler) () {
 			value.CurrentCounter += 1
 			fmt.Printf("Current Counter %d\n", value.CurrentCounter)
 			if value.CurrentCounter >= scheduler.StatusCounter {
-				fmt.Println("Comig here after disconnected for server")
 				value.Dead = true
-				scheduler.RequestTracker.CheckForDeadServerRequests(value.Address)
+				backEnd, err := scheduler.GetBackend()
+				if err != nil {
+					fmt.Printf("Could not a get a backend when server is down %v\n", err)
+				} else {
+					fmt.Printf("Any request for %q will be routed to %q\n", value.Address, backEnd)
+					scheduler.RequestTracker.CheckForDeadServerRequests(value.Address, backEnd)
+				}
+				// Currently ignore, if we don't get a backend
 				dead = append(dead, value.Address)
 			}
 			value.Status = false
