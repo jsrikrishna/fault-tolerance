@@ -7,24 +7,25 @@ import (
 	"errors"
 	"math/rand"
 	"fault-tolerance/config"
+	. "fault-tolerance/requestTracker"
 )
 
-
 type Scheduler struct {
-	Servers []config.Server
-	PingInterval int
-	HealthcheckInterval int
-	StatusCounter int
-	AvailableServers []string
-	UnavailableServers []string
-	DeadServers []string
-	Algorithm string
-	PreviousServer int
+	Servers              []*config.Server
+	PingInterval         int
+	HealthcheckInterval  int
+	StatusCounter        int
+	AvailableServers     []string
+	UnavailableServers   []string
+	DeadServers          []string
+	Algorithm            string
+	PreviousServer       int
 	CurrentServerCounter int
-	AvailableServerPtrs []config.Server
+	AvailableServerPtrs  []*config.Server
+	RequestTracker       *RequestTracker
 }
 
-func (scheduler *Scheduler) GetBackend() (string, error){
+func (scheduler *Scheduler) GetBackend() (string, error) {
 	var available []string
 	available = scheduler.AvailableServers
 	numberOfServers := len(available)
@@ -41,7 +42,7 @@ func (scheduler *Scheduler) GetBackend() (string, error){
 
 	case "roundrobin":
 		fmt.Printf("Using Round Robin Algorithm\n")
-		serverNumber := ((scheduler.PreviousServer+1) % numberOfServers)
+		serverNumber := ((scheduler.PreviousServer + 1) % numberOfServers)
 		scheduler.PreviousServer = serverNumber
 		fmt.Printf("Server Number is %d\n", serverNumber)
 		return available[serverNumber], nil
@@ -49,7 +50,7 @@ func (scheduler *Scheduler) GetBackend() (string, error){
 	case "weightedroundrobin":
 		fmt.Printf("Using Weighted Round Robin Algorithm\n")
 		temp := scheduler.PreviousServer
-		if (scheduler.CurrentServerCounter > scheduler.AvailableServerPtrs[scheduler.PreviousServer].Weight){
+		if (scheduler.CurrentServerCounter > scheduler.AvailableServerPtrs[scheduler.PreviousServer].Weight) {
 			temp = (scheduler.PreviousServer + 1) % numberOfServers
 			scheduler.PreviousServer = (scheduler.PreviousServer + 1) % numberOfServers
 			scheduler.CurrentServerCounter = 0
@@ -69,9 +70,9 @@ func (scheduler *Scheduler) GetBackend() (string, error){
 }
 
 func HealthCheckWrapper(scheduler *Scheduler) {
-	for{
+	for {
 		Healthcheck(scheduler)
-		time.Sleep(time.Duration(scheduler.HealthcheckInterval) *time.Millisecond)
+		time.Sleep(time.Duration(scheduler.HealthcheckInterval) * time.Millisecond)
 	}
 }
 
@@ -80,30 +81,33 @@ func Healthcheck(scheduler *Scheduler) () {
 	var connected []string
 	var disconnected []string
 	var dead []string
-	var available_servers []config.Server
-	servers := scheduler.Servers
+	var available_servers []*config.Server
 	pingInterval := scheduler.PingInterval
-	for _, value := range servers {
+	for _, value := range scheduler.Servers {
 
 		conn, err := net.DialTimeout("tcp", value.Address, time.Duration(pingInterval) * time.Second)
 		if err != nil {
 			fmt.Printf(value.Address + " Disconnected\n")
-			value.CurrentCounter+=1
+			value.CurrentCounter += 1
+			fmt.Printf("Current Counter %d\n", value.CurrentCounter)
 			if value.CurrentCounter >= scheduler.StatusCounter {
+				fmt.Println("Comig here after disconnected for server")
 				value.Dead = true
-				dead = append(dead,value.Address)
+				scheduler.RequestTracker.CheckForDeadServerRequests(value.Address)
+				dead = append(dead, value.Address)
 			}
 			value.Status = false
 			disconnected = append(disconnected, value.Address)
-			continue
+		} else {
+			fmt.Printf(value.Address + " Connected\n")
+			value.Status = true
+			value.CurrentCounter = 0
+			value.Dead = false
+			available_servers = append(available_servers, value)
+			defer conn.Close()
+			connected = append(connected, value.Address)
 		}
-		fmt.Printf(value.Address + " Connected\n")
-		value.Status = true
-		value.CurrentCounter = 0
-		value.Dead = false
-		available_servers = append(available_servers,value)
-		defer conn.Close()
-		connected = append(connected, value.Address)
+
 	}
 	scheduler.AvailableServers = connected
 	scheduler.UnavailableServers = disconnected

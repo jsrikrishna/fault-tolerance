@@ -1,23 +1,29 @@
 package scheduler
 
 import (
-	"fault-tolerance/config"
+	. "fault-tolerance/config"
 	"fault-tolerance/ping"
+	. "fault-tolerance/requestTracker"
 )
 
-func New(config config.Configuration) *ping.Scheduler {
+func New(newConfig Configuration, tracker *RequestTracker) *ping.Scheduler {
+	var servers []*Server
+	for i := 0; i < len(newConfig.Servers); i += 1 {
+		servers = append(servers, &newConfig.Servers[i])
+	}
 	scheduler := ping.Scheduler{
-		Servers: config.Servers,
-		PingInterval: config.PingInterval,
-		HealthcheckInterval:config.HealthcheckInterval,
-		StatusCounter: config.StatusCounter,
+		Servers: servers,
+		PingInterval: newConfig.PingInterval,
+		HealthcheckInterval:newConfig.HealthcheckInterval,
+		StatusCounter: newConfig.StatusCounter,
 		AvailableServers: []string{},
 		UnavailableServers: []string{},
 		DeadServers: []string{},
-		Algorithm: config.Algorithm,
+		Algorithm: newConfig.Algorithm,
 		PreviousServer: int(0),
 		CurrentServerCounter: int(0),
-		AvailableServerPtrs: config.Servers,
+		AvailableServerPtrs: servers,
+		RequestTracker:tracker,
 	}
 
 	for _, value := range scheduler.Servers {

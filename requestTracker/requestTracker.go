@@ -1,13 +1,12 @@
-package main
+package requestTracker
 
 import (
-	"strings"
-	//"net/http"
-	"encoding/json"
-	"fmt"
 	"time"
 	"net/url"
 	"io"
+	"strings"
+	"encoding/json"
+	"fmt"
 )
 
 type Request struct {
@@ -20,7 +19,7 @@ type Request struct {
 }
 
 type RequestTracker struct {
-	requestTracker map[string][]Request
+	CurrentRequests map[string][]Request
 }
 
 type RequestType struct {
@@ -31,11 +30,11 @@ type RequestType struct {
 
 func NewRequestTracker() *RequestTracker {
 	return &RequestTracker{
-		requestTracker: make(map[string][]Request),
+		CurrentRequests: make(map[string][]Request),
 	}
 }
 
-func (tracker *RequestTracker) addRequest(reqURL *url.URL, body io.ReadCloser, backend string) {
+func (tracker *RequestTracker) AddRequest(reqURL *url.URL, body io.ReadCloser, backend string) {
 	if (strings.TrimSpace(reqURL.Path) == "/resources") {
 		decoder := json.NewDecoder(body)
 		var requestType RequestType
@@ -53,7 +52,7 @@ func (tracker *RequestTracker) addRequest(reqURL *url.URL, body io.ReadCloser, b
 			fmt.Println("Error occurred in formatting time, expected timeFormat is ", timeLayout)
 			return
 		}
-		value, ok := tracker.requestTracker[backend]
+		value, ok := tracker.CurrentRequests[backend]
 		request := Request{
 			Path: reqURL.Path,
 			StartTime: startTime,
@@ -62,14 +61,18 @@ func (tracker *RequestTracker) addRequest(reqURL *url.URL, body io.ReadCloser, b
 		}
 		if ok {
 			value = append(value, request)
-			tracker.requestTracker[backend] = value
+			tracker.CurrentRequests[backend] = value
 		} else {
 			var requests []Request
 			requests = append(requests, request)
-			tracker.requestTracker[backend] = requests
+			tracker.CurrentRequests[backend] = requests
 		}
 		//for key, value := range tracker.requestTracker {
 		//	fmt.Println("Key:", key, "Value:", value)
 		//}
 	}
+}
+
+func (tracker *RequestTracker) CheckForDeadServerRequests(address string) {
+	fmt.Println("Address is ", address)
 }

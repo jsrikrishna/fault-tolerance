@@ -8,6 +8,7 @@ import (
 	"log"
 	"fault-tolerance/scheduler"
 	"fault-tolerance/ping"
+	. "fault-tolerance/requestTracker"
 	"io/ioutil"
 	"bytes"
 )
@@ -26,7 +27,7 @@ func NewMultipleHostReverseProxy(scheduler *ping.Scheduler, tracker *RequestTrac
 			bodyForTracking := ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
 			// Restore the io.ReadCloser to its original state
 			req.Body = ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
-			tracker.addRequest(req.URL, bodyForTracking, backEnd)
+			tracker.AddRequest(req.URL, bodyForTracking, backEnd)
 		}
 		req.URL.Scheme = "http"
 		req.URL.Host = backEnd
@@ -64,8 +65,8 @@ func main() {
 		fmt.Printf("%v\n", err)
 	} else {
 		fmt.Printf("Configuration - %v\n", configuration)
-		loadScheduler := scheduler.New(configuration)
 		tracker := NewRequestTracker()
+		loadScheduler := scheduler.New(configuration, tracker)
 		// Run a goroutine for healthcheck
 		go ping.HealthCheckWrapper(loadScheduler)
 		proxy := NewMultipleHostReverseProxy(loadScheduler, tracker)
