@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"bytes"
+	"fault-tolerance/config"
 	. "fault-tolerance/requestTracker"
 	. "fault-tolerance/ping"
 )
@@ -61,7 +62,14 @@ func (loadBalancer *LoadBalancer) AddServer(w http.ResponseWriter, req *http.Req
 		decoder := json.NewDecoder(bodyForStatus)
 		var newServer newServer
 		err := decoder.Decode(&newServer)
-
+		var configServer config.Server
+		configServer.Name = newServer.serverName
+		configServer.Address = newServer.address
+		configServer.Weight = newServer.weight
+		configServer.CurrentCounter = 0
+		configServer.Status = true
+		configServer.Dead = false
+		loadBalancer.Scheduler.Servers = append(loadBalancer.Scheduler.Servers,&configServer)
 		if err != nil {
 			fmt.Println("Error occurred while decoding the /server body ", err)
 			w.WriteHeader(http.StatusBadRequest)
