@@ -52,7 +52,8 @@ func main() {
 		// Run a goroutine for healthcheck
 		go ping.HealthCheckWrapper(loadScheduler)
 		proxy := NewMultipleHostReverseProxy(loadScheduler, tracker)
-		go func(){log.Fatal(http.ListenAndServe(configuration.BindTo, proxy))}()
+		log.Fatal(http.ListenAndServe(configuration.BindTo, proxy))
+		//go func(){log.Fatal(http.ListenAndServe(configuration.BindTo, proxy))}()
 		log.Fatal(http.ListenAndServe(configuration.BindToStatusServer, router))
 	}
 

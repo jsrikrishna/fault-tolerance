@@ -24,4 +24,10 @@ var routes = Routes{
 		"/status",
 		RequestStatusHandler,
 	},
+	Route{
+		"Server",
+		"POST",
+		"/server",
+		AddServer,
+	},
 }

@@ -88,7 +88,7 @@ func Healthcheck(scheduler *Scheduler) () {
 	for index, _ := range scheduler.Servers {
 		j := index-deleted
 		curr_server := scheduler.Servers[j]
-		if(!curr_server.Dead) {
+		if(curr_server.Dead) {
 			continue
 		}
 
