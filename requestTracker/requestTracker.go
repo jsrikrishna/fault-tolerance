@@ -82,7 +82,7 @@ func (tracker *RequestTracker) RemoveRequest(backend string, startTime string, e
 	//	fmt.Printf("Key: %s, Value %+v", key, value)
 	//}
 	fmt.Printf("RemoveRequest Number of elements in map %d\n", len(tracker.CurrentRequests))
-	fmt.Printf("Yes backend is %v present, %v with values %+v\n", backend, present, requests)
+	fmt.Printf("Yes backend %v is present, %v with values %+v\n", backend, present, requests)
 	if present {
 		startTime, err := time.Parse(timeLayout, startTime)
 		endTime, err := time.Parse(timeLayout, endTime)
@@ -94,9 +94,9 @@ func (tracker *RequestTracker) RemoveRequest(backend string, startTime string, e
 		for i, request := range requests {
 			fmt.Printf("Given start time is %s and end time is %s\n", startTime.String(), endTime.String())
 			fmt.Printf("Map start time is %s and end time is %s\n", request.StartTime.String(), request.EndTime.String())
-			if endTime == request.EndTime && startTime == request.StartTime {
+			if endTime.Equal(request.EndTime) && startTime.Equal(request.StartTime) {
 				tracker.CurrentRequests[backend] = append(requests[:i], requests[i + 1:]...)
-				fmt.Println("Yes present and removed now\n")
+				fmt.Println("Yes present and removed now")
 			}
 
 		}
@@ -129,7 +129,7 @@ func (tracker *RequestTracker) CheckForDeadServerRequests(address string, otherB
 		fmt.Println(currentTime.Format(timeLayout))
 		for _, currentRequest := range currentRequests {
 			if currentRequest.EndTime.After(currentTime) {
-				fmt.Println("Yes, need to process request\n")
+				fmt.Println("Yes, need to process request")
 				requestBody := RequestType{
 					Type : "resources",
 					StartTime: currentTime.Format(timeLayout),
@@ -142,7 +142,11 @@ func (tracker *RequestTracker) CheckForDeadServerRequests(address string, otherB
 					End(currentRequestCallback)
 				fmt.Printf("%v, %v, %v\n", resp, body, errs)
 			}
-			currentRequest.StartTime = currentTime
+			newStartTime, err := time.Parse(timeLayout, currentTime.Format(timeLayout))
+			if err != nil {
+				fmt.Printf("Time format error occured while storing new requests of dead server %s", address)
+			}
+			currentRequest.StartTime = newStartTime
 			otherBackendValue = append(otherBackendValue, currentRequest)
 		}
 		tracker.CurrentRequests[otherBackend] = otherBackendValue
