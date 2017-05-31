@@ -18,4 +18,10 @@ var routes = Routes{
 		"/resources",
 		Resources,
 	},
+	Route{
+		"Status",
+		"POST",
+		"/status",
+		RequestStatusHandler,
+	},
 }

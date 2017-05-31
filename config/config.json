@@ -2,6 +2,7 @@
   "name": "load-balance",
   "protocol": "tcp",
   "bindto": "localhost:8090",
+  "bindToStatuSserver": "localhost:8091",
   "clientIdleTimeout" : "10s",
   "backendIdleTimeout": "10s",
   "backendConnectionTimeout": "2s",

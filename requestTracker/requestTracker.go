@@ -91,7 +91,6 @@ func (tracker *RequestTracker) CheckForDeadServerRequests(address string, backen
 					Type : "resources",
 					StartTime: currentTime.Format(timeLayout),
 					EndTime: currentRequest.EndTime.Format(timeLayout),
-
 				}
 				request := gorequest.New()
 				resp, body, errs := request.Post("http://" + backend + "/resources").
@@ -100,7 +99,7 @@ func (tracker *RequestTracker) CheckForDeadServerRequests(address string, backen
 				fmt.Printf("%v, %v, %v", resp, body, errs)
 			}
 		}
-
+		delete(tracker.CurrentRequests, address)
 	}
 
 }
