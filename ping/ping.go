@@ -83,35 +83,46 @@ func Healthcheck(scheduler *Scheduler) () {
 	var dead []string
 	var available_servers []*config.Server
 	pingInterval := scheduler.PingInterval
-	for _, value := range scheduler.Servers {
+	var deleted = 0
 
-		conn, err := net.DialTimeout("tcp", value.Address, time.Duration(pingInterval) * time.Second)
+	for index, _ := range scheduler.Servers {
+		j := index-deleted
+		curr_server := scheduler.Servers[j]
+		if(!curr_server.Dead) {
+			continue
+		}
+
+		conn, err := net.DialTimeout("tcp", curr_server.Address, time.Duration(pingInterval) * time.Second)
 		if err != nil {
-			fmt.Printf(value.Address + " Disconnected\n")
-			value.CurrentCounter += 1
-			fmt.Printf("Current Counter %d\n", value.CurrentCounter)
-			if value.CurrentCounter >= scheduler.StatusCounter {
-				value.Dead = true
+			fmt.Printf(curr_server.Address + " Disconnected\n")
+			curr_server.CurrentCounter += 1
+			fmt.Printf("Current Counter %d\n", curr_server.CurrentCounter)
+			if curr_server.CurrentCounter >= scheduler.StatusCounter {
+				curr_server.Dead = true
+
 				backEnd, err := scheduler.GetBackend()
 				if err != nil {
 					fmt.Printf("Could not a get a backend when server is down %v\n", err)
 				} else {
-					fmt.Printf("Any request for %q will be routed to %q\n", value.Address, backEnd)
-					scheduler.RequestTracker.CheckForDeadServerRequests(value.Address, backEnd)
+					fmt.Printf("Any request for %q will be routed to %q\n", curr_server.Address, backEnd)
+					scheduler.RequestTracker.CheckForDeadServerRequests(curr_server.Address, backEnd)
 				}
 				// Currently ignore, if we don't get a backend
-				dead = append(dead, value.Address)
+				dead = append(dead, curr_server.Address)
+				scheduler.Servers = scheduler.Servers[:j+copy(scheduler.Servers[j:], scheduler.Servers[j+1:])]
+				deleted++
+
 			}
-			value.Status = false
-			disconnected = append(disconnected, value.Address)
+			curr_server.Status = false
+			disconnected = append(disconnected, curr_server.Address)
 		} else {
-			fmt.Printf(value.Address + " Connected\n")
-			value.Status = true
-			value.CurrentCounter = 0
-			value.Dead = false
-			available_servers = append(available_servers, value)
+			fmt.Printf(curr_server.Address + " Connected\n")
+			curr_server.Status = true
+			curr_server.CurrentCounter = 0
+			curr_server.Dead = false
+			available_servers = append(available_servers, curr_server)
 			defer conn.Close()
-			connected = append(connected, value.Address)
+			connected = append(connected, curr_server.Address)
 		}
 
 	}
