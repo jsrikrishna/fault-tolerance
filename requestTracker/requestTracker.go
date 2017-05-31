@@ -69,16 +69,59 @@ func (tracker *RequestTracker) AddRequest(reqURL *url.URL, body io.ReadCloser, b
 			requests = append(requests, request)
 			tracker.CurrentRequests[backend] = requests
 		}
-		//for key, value := range tracker.requestTracker {
-		//	fmt.Println("Key:", key, "Value:", value)
-		//}
+		for key, value := range tracker.CurrentRequests {
+			fmt.Printf("Key: %s, Value %+v\n", key, value)
+		}
+		fmt.Printf("AddRequest Number of elements in map %d\n", len(tracker.CurrentRequests))
 	}
 }
-func currentRequestCallback(resp gorequest.Response, body string, errs []error){
+
+func (tracker *RequestTracker) RemoveRequest(backend string, startTime string, endTime string) {
+	requests, present := tracker.CurrentRequests[backend];
+	//for key, value := range tracker.CurrentRequests {
+	//	fmt.Printf("Key: %s, Value %+v", key, value)
+	//}
+	fmt.Printf("RemoveRequest Number of elements in map %d\n", len(tracker.CurrentRequests))
+	fmt.Printf("Yes backend is %v present, %v with values %+v\n", backend, present, requests)
+	if present {
+		startTime, err := time.Parse(timeLayout, startTime)
+		endTime, err := time.Parse(timeLayout, endTime)
+		if err != nil {
+			fmt.Println("Error occurred in formatting time while processing removeRequests, " +
+				"expected timeFormat is \n", timeLayout)
+			return
+		}
+		for i, request := range requests {
+			fmt.Printf("Given start time is %s and end time is %s\n", startTime.String(), endTime.String())
+			fmt.Printf("Map start time is %s and end time is %s\n", request.StartTime.String(), request.EndTime.String())
+			if endTime == request.EndTime && startTime == request.StartTime {
+				tracker.CurrentRequests[backend] = append(requests[:i], requests[i + 1:]...)
+				fmt.Println("Yes present and removed now\n")
+			}
+
+		}
+		for key, value := range tracker.CurrentRequests {
+			fmt.Println("Key:", key, "Value:", value)
+		}
+		if len(tracker.CurrentRequests[backend]) == 0 {
+			delete(tracker.CurrentRequests, backend)
+		}
+
+	}
+}
+
+func currentRequestCallback(resp gorequest.Response, body string, errs []error) {
 	fmt.Println("Status is done ", resp.Status)
 }
 
-func (tracker *RequestTracker) CheckForDeadServerRequests(address string, backend string) {
+func (tracker *RequestTracker) CheckForDeadServerRequests(address string, otherBackend string) {
+	otherBackendValue, ok := tracker.CurrentRequests[otherBackend];
+	if !ok {
+		var requests []*Request
+		otherBackendValue = requests
+
+	}
+
 	if currentRequests, present := tracker.CurrentRequests[address]; present {
 		fmt.Printf("Server is currently handling requests %t \n", present)
 		fmt.Printf("Current Requets are %d\n", len(currentRequests))
@@ -86,19 +129,23 @@ func (tracker *RequestTracker) CheckForDeadServerRequests(address string, backen
 		fmt.Println(currentTime.Format(timeLayout))
 		for _, currentRequest := range currentRequests {
 			if currentRequest.EndTime.After(currentTime) {
-				fmt.Println("Yes, need to process request")
+				fmt.Println("Yes, need to process request\n")
 				requestBody := RequestType{
 					Type : "resources",
 					StartTime: currentTime.Format(timeLayout),
 					EndTime: currentRequest.EndTime.Format(timeLayout),
 				}
+				fmt.Printf("Request Body is %+v\n", requestBody)
 				request := gorequest.New()
-				resp, body, errs := request.Post("http://" + backend + "/resources").
+				resp, body, errs := request.Post("http://" + otherBackend + "/resources").
 					Send(requestBody).
 					End(currentRequestCallback)
-				fmt.Printf("%v, %v, %v", resp, body, errs)
+				fmt.Printf("%v, %v, %v\n", resp, body, errs)
 			}
+			currentRequest.StartTime = currentTime
+			otherBackendValue = append(otherBackendValue, currentRequest)
 		}
+		tracker.CurrentRequests[otherBackend] = otherBackendValue
 		delete(tracker.CurrentRequests, address)
 	}
 

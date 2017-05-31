@@ -6,8 +6,14 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"bytes"
+	. "fault-tolerance/requestTracker"
+	. "fault-tolerance/ping"
 )
 
+type LoadBalancer struct {
+	Tracker   *RequestTracker
+	Scheduler *Scheduler
+}
 type statusBody struct {
 	BackEnd   string `json:"backend"`
 	StartTime string `json:"starttime"`
@@ -20,11 +26,11 @@ type newServer struct {
 	weight     int `json:"weight"`
 }
 
-func Resources(w http.ResponseWriter, r *http.Request) {
+func (loadBalancer *LoadBalancer) Resources(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Got the request")
 }
 
-func RequestStatusHandler(w http.ResponseWriter, req *http.Request) {
+func (loadBalancer *LoadBalancer) RequestStatusHandler(w http.ResponseWriter, req *http.Request) {
 
 	if req.Body != nil {
 		var bodyBytes []byte
@@ -40,13 +46,14 @@ func RequestStatusHandler(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 		w.WriteHeader(http.StatusOK)
+		loadBalancer.Tracker.RemoveRequest(statusData.BackEnd, statusData.StartTime, statusData.EndTime)
 		return
 	}
 	w.WriteHeader(http.StatusBadRequest)
 	return
 }
 
-func AddServer(w http.ResponseWriter, req *http.Request) {
+func (loadBalancer *LoadBalancer) AddServer(w http.ResponseWriter, req *http.Request) {
 	if req.Body != nil {
 		var bodyBytes []byte
 		bodyBytes, _ = ioutil.ReadAll(req.Body)

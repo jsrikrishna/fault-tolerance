@@ -45,15 +45,20 @@ func main() {
 	if err != nil {
 		fmt.Printf("%v\n", err)
 	} else {
-		router := NewRouter()
+
 		fmt.Printf("Configuration - %v\n", configuration)
 		tracker := NewRequestTracker()
 		loadScheduler := scheduler.New(configuration, tracker)
+		loadBalancer := &LoadBalancer{
+			Tracker: tracker,
+			Scheduler: loadScheduler,
+		}
+		router := NewRouter(loadBalancer)
 		// Run a goroutine for healthcheck
 		go ping.HealthCheckWrapper(loadScheduler)
 		proxy := NewMultipleHostReverseProxy(loadScheduler, tracker)
-		log.Fatal(http.ListenAndServe(configuration.BindTo, proxy))
-		//go func(){log.Fatal(http.ListenAndServe(configuration.BindTo, proxy))}()
+		//log.Fatal(http.ListenAndServe(configuration.BindTo, proxy))
+		go func(){log.Fatal(http.ListenAndServe(configuration.BindTo, proxy))}()
 		log.Fatal(http.ListenAndServe(configuration.BindToStatusServer, router))
 	}
 

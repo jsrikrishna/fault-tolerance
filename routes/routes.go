@@ -11,23 +11,27 @@ type Route struct {
 
 type Routes []Route
 
-var routes = Routes{
-	Route{
-		"Resources",
-		"GET",
-		"/resources",
-		Resources,
-	},
-	Route{
-		"Status",
-		"POST",
-		"/status",
-		RequestStatusHandler,
-	},
-	Route{
-		"Server",
-		"POST",
-		"/server",
-		AddServer,
-	},
+func (loadBalancer *LoadBalancer) CreateRoutes() Routes {
+	var routes = Routes{
+		Route{
+			"Resources",
+			"GET",
+			"/resources",
+			loadBalancer.Resources,
+		},
+		Route{
+			"Status",
+			"POST",
+			"/status",
+			loadBalancer.RequestStatusHandler,
+		},
+		Route{
+			"Server",
+			"POST",
+			"/server",
+			loadBalancer.AddServer,
+		},
+	}
+	return routes
 }
+
