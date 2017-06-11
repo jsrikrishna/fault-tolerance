@@ -8,6 +8,8 @@ import (
 	"math/rand"
 	"fault-tolerance/config"
 	. "fault-tolerance/requestTracker"
+	"github.com/parnurzeal/gorequest"
+	"encoding/json"
 )
 
 type Scheduler struct {
@@ -72,6 +74,7 @@ func (scheduler *Scheduler) GetBackend() (string, error) {
 func HealthCheckWrapper(scheduler *Scheduler) {
 	for {
 		Healthcheck(scheduler)
+		SystemResourceChecks(scheduler)
 		time.Sleep(time.Duration(scheduler.HealthcheckInterval) * time.Millisecond)
 	}
 }
@@ -86,9 +89,9 @@ func Healthcheck(scheduler *Scheduler) () {
 	var deleted = 0
 
 	for index, _ := range scheduler.Servers {
-		j := index-deleted
+		j := index - deleted
 		curr_server := scheduler.Servers[j]
-		if(curr_server.Dead) {
+		if (curr_server.Dead) {
 			continue
 		}
 
@@ -99,7 +102,8 @@ func Healthcheck(scheduler *Scheduler) () {
 			fmt.Printf("Current Counter %d\n", curr_server.CurrentCounter)
 			if curr_server.CurrentCounter >= scheduler.StatusCounter {
 				curr_server.Dead = true
-
+				// sleep for HealthCheckInterval time + 1sec
+				time.Sleep(time.Duration(scheduler.HealthcheckInterval + 1000) * time.Millisecond)
 				backEnd, err := scheduler.GetBackend()
 				if err != nil {
 					fmt.Printf("Could not a get a backend when server is down %v\n", err)
@@ -109,9 +113,8 @@ func Healthcheck(scheduler *Scheduler) () {
 				}
 				// Currently ignore, if we don't get a backend
 				dead = append(dead, curr_server.Address)
-				scheduler.Servers = scheduler.Servers[:j+copy(scheduler.Servers[j:], scheduler.Servers[j+1:])]
+				scheduler.Servers = scheduler.Servers[:j + copy(scheduler.Servers[j:], scheduler.Servers[j + 1:])]
 				deleted++
-
 			}
 			curr_server.Status = false
 			disconnected = append(disconnected, curr_server.Address)
@@ -130,4 +133,29 @@ func Healthcheck(scheduler *Scheduler) () {
 	scheduler.UnavailableServers = disconnected
 	scheduler.DeadServers = dead
 	scheduler.AvailableServerPtrs = available_servers
+}
+
+func SystemResourceChecks(scheduler *Scheduler) {
+
+	for i := 0; i < len(scheduler.Servers); i++ {
+		serverAddress := scheduler.Servers[i].Address
+		request := gorequest.New()
+		resp, body, errs := request.Get("http://" + serverAddress + "/systemResources").End()
+		if errs != nil {
+			continue
+		}
+		if resp.StatusCode == 200 {
+			var systemResourcesData SystemResourceData
+			if err := json.Unmarshal([]byte(body), &systemResourcesData); err != nil {
+				fmt.Printf("Error occurred when decoding system resource %#v", err)
+				continue
+			}
+			scheduler.Servers[i].UsedResources = systemResourcesData.UsedPercent
+			scheduler.Servers[i].FreeResources = systemResourcesData.Free
+			fmt.Printf("Res type is %#v\n", systemResourcesData)
+		} else {
+			continue
+		}
+
+	}
 }

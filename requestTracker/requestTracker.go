@@ -31,6 +31,12 @@ type RequestType struct {
 	EndTime   string `json:"endtime"`
 }
 
+type SystemResourceData struct {
+	Address string
+	UsedPercent float64
+	Free uint64
+}
+
 func NewRequestTracker() *RequestTracker {
 	return &RequestTracker{
 		CurrentRequests: make(map[string][]*Request),

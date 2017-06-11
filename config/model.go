@@ -22,4 +22,6 @@ type Server struct {
 	CurrentCounter int
 	Dead           bool
 	Weight         int `json:"weight"`
+	UsedResources 	float64
+	FreeResources	uint64
 }

@@ -31,6 +31,13 @@ func (loadBalancer *LoadBalancer) CreateRoutes() Routes {
 			"/server",
 			loadBalancer.AddServer,
 		},
+		Route{
+			"SystemResources",
+			"POST",
+			"/systemResources",
+			loadBalancer.GetSystemResources,
+
+		},
 	}
 	return routes
 }
