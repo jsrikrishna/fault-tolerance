@@ -10,6 +10,7 @@ import (
 	. "fault-tolerance/requestTracker"
 	"github.com/parnurzeal/gorequest"
 	"encoding/json"
+	"math"
 )
 
 type Scheduler struct {
@@ -60,6 +61,19 @@ func (scheduler *Scheduler) GetBackend() (string, error) {
 		}
 		scheduler.CurrentServerCounter++
 		return available[temp], nil
+
+	case "cpumetrics":
+		fmt.Printf("Using CPU Metrics")
+		min := uint64(math.MaxUint64)
+		serverIndex := 0
+		for i := 0; i < numberOfServers; i++ {
+			if (scheduler.AvailableServerPtrs[i].FreeResources < min) {
+				serverIndex = i
+				min = scheduler.AvailableServerPtrs[i].FreeResources
+			}
+		}
+		fmt.Printf("Using Server %d\n", serverIndex)
+		return available[serverIndex], nil
 
 
 	default:
