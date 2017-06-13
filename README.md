@@ -31,5 +31,6 @@
 		"endtime": "Wed, 06/07/17, 10:50AM"
 	 }
 	 ```
+ - Dynamic Routing of the continuous queries `/resources` is handled when a processing node goes down.
 
 Team Members : Sri Krishna Jaliparthy, Raghu Sai Gudipati, Thejdeep Gudivada
