@@ -33,4 +33,4 @@
 	 ```
  - Dynamic Routing of the continuous queries `/resources` is handled when a processing node goes down.
 
-Team Members : Sri Krishna Jaliparthy, Raghu Sai Gudipati, Thejdeep Gudivada
+Team Members : [Sri Krishna](https://github.com/jsrikrishna/), [Thejdeep](https://github.com/thejdeep), [Raghu](https://github.com/raghugudipati)
